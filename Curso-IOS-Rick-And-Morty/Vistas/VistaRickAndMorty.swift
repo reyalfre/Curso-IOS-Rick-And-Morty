@@ -35,6 +35,13 @@ struct VistaRickAndMorty: View {
                         personaje in
                         HStack {
                             //Carga de la imagen
+                            AsyncImage(url: URL(string: personaje.image)){imagen in
+                                imagen.resizable().scaledToFit()
+                            } placeholder: {
+                                Color.gray.opacity(0.3)
+                            }
+                            .frame(width: 60, height: 60)
+                            .clipShape(Circle())
 
                             VStack(alignment: .leading) {
                                 Text(personaje.name)

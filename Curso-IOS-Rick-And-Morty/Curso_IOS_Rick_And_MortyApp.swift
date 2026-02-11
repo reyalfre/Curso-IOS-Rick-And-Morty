@@ -11,7 +11,7 @@ import SwiftUI
 struct Curso_IOS_Rick_And_MortyApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            VistaRickAndMorty()
         }
     }
 }

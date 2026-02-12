@@ -9,6 +9,8 @@ import SwiftUI
 
 struct VistaDetallePersonaje: View {
     let personaje: Personaje
+    @Binding var path: NavigationPath
+
     @State private var detalle: PersonajeDetalle?
     @State private var episodios: [Episodio] = []
     @State private var personajesRelacionados: [Personaje] = []
@@ -114,9 +116,9 @@ struct VistaDetallePersonaje: View {
                                     ForEach(personajesRelacionados) {
                                         personaje in
                                         NavigationLink(
-                                            destination: VistaDetallePersonaje(
-                                                personaje: personaje
-                                            )
+                                            value: personaje
+                                                //           destination: VistaDetallePersonaje(
+                                                //               personaje: personaje)
                                         ) {
                                             VStack {
                                                 AsyncImage(
@@ -133,11 +135,13 @@ struct VistaDetallePersonaje: View {
                                                 .frame(width: 80, height: 80)
                                                 .clipShape(Circle())
                                                 .shadow(radius: 3)
-                                                
+
                                                 Text(personaje.name)
                                                     .font(.caption)
                                                     .lineLimit(2)
-                                                    .multilineTextAlignment(.center)
+                                                    .multilineTextAlignment(
+                                                        .center
+                                                    )
                                                     .frame(width: 80)
                                                     .foregroundStyle(.primary)
                                             }
@@ -149,6 +153,16 @@ struct VistaDetallePersonaje: View {
                             }
                         }
                     }
+                }
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    //Resetea el Navigation path y vuelve a la vista principal
+                    path = NavigationPath()
+                } label: {
+                    Image(systemName: "house.fill")
                 }
             }
         }
@@ -232,12 +246,27 @@ struct GridInfo: View {
 }
 
 #Preview {
-    let personaje = Personaje(
-        id: 1,
-        name: "Rick Sanchez",
-        status: "Alive",
-        species: "Human",
-        image: "https://rickandmortyapi.com/api/character/avatar/1.jpeg"
-    )
-    VistaDetallePersonaje(personaje: personaje)
+    
+
+    struct ContenedorPrevisualizacion: View {
+        @State private var path = NavigationPath()
+        let personaje = Personaje(
+            id: 1,
+            name: "Rick Sanchez",
+            status: "Alive",
+            species: "Human",
+            image: "https://rickandmortyapi.com/api/character/avatar/1.jpeg"
+        )
+
+        var body: some View {
+            NavigationStack(path: $path) {
+                VistaDetallePersonaje(personaje: personaje, path: $path)
+                    .navigationDestination(for: Personaje.self){
+                        personaje in VistaDetallePersonaje(personaje: personaje, path: $path)
+                    }
+            }
+        }
+    }
+    return ContenedorPrevisualizacion()
+    //   VistaDetallePersonaje(personaje: personaje)
 }

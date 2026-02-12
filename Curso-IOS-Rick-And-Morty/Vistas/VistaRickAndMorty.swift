@@ -13,8 +13,13 @@ struct VistaRickAndMorty: View {
     @State private var errorMessage: String? = nil
 
     private let apiService = ApiService()
+    
+   // @Binding private var path: NavigationPath("")
+
+    @State private var path = NavigationPath()
+    //@State private var path2 = NavigationPath("/rickandmorty")
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack {
                 if isLoading {
                     ProgressView("Carga interdimensional...")
@@ -33,11 +38,8 @@ struct VistaRickAndMorty: View {
                 } else {
                     List(personajes) {
                         personaje in
-                        NavigationLink(
-                            destination: VistaDetallePersonaje(
-                                personaje: personaje
-                            )
-                        ) {
+                        NavigationLink(value: personaje) {
+                            //NavigationLink(destination: VistaDetallePersonaje(personaje: personaje)) {
                             HStack {
                                 //Carga de la imagen
                                 AsyncImage(url: URL(string: personaje.image)) {
@@ -74,6 +76,13 @@ struct VistaRickAndMorty: View {
             .navigationTitle("Rick and Morty API").task {
                 await cargarDatos()
             }
+            .navigationDestination(
+                for: Personaje.self,
+                destination: {
+                    personajes in
+                    VistaDetallePersonaje(personaje: personajes, path: $path)
+                }
+            )
 
         }
     }

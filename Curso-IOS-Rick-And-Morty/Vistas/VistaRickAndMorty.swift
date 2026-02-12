@@ -33,31 +33,39 @@ struct VistaRickAndMorty: View {
                 } else {
                     List(personajes) {
                         personaje in
-                        HStack {
-                            //Carga de la imagen
-                            AsyncImage(url: URL(string: personaje.image)){imagen in
-                                imagen.resizable().scaledToFit()
-                            } placeholder: {
-                                Color.gray.opacity(0.3)
-                            }
-                            .frame(width: 60, height: 60)
-                            .clipShape(Circle())
+                        NavigationLink(
+                            destination: VistaDetallePersonaje(
+                                personaje: personaje
+                            )
+                        ) {
+                            HStack {
+                                //Carga de la imagen
+                                AsyncImage(url: URL(string: personaje.image)) {
+                                    imagen in
+                                    imagen.resizable().scaledToFit()
+                                } placeholder: {
+                                    Color.gray.opacity(0.3)
+                                }
+                                .frame(width: 60, height: 60)
+                                .clipShape(Circle())
 
-                            VStack(alignment: .leading) {
-                                Text(personaje.name)
-                                    .font(.headline)
-                                Text(personaje.species)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(personaje.status)
-                                    .font(.subheadline)
+                                VStack(alignment: .leading) {
+                                    Text(personaje.name)
+                                        .font(.headline)
+                                    Text(personaje.species)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text(personaje.status)
+                                        .font(.subheadline)
+                                }
+                                Spacer()
+                                //Si está vivo se pone en verde, si está muerto en rojo
+                                Image(systemName: "circle.fill")
+                                    .foregroundStyle(
+                                        personaje.status == "Alive"
+                                            ? .green : .red
+                                    )
                             }
-                            Spacer()
-                            //Si está vivo se pone en verde, si está muerto en rojo
-                            Image(systemName: "circle.fill")
-                                .foregroundStyle(
-                                    personaje.status == "Alive" ? .green : .red
-                                )
                         }
                     }
                 }

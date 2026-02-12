@@ -96,7 +96,114 @@ class ApiService {
             return respuesta
         } catch {
             print("Error decodificando: \(error)")
-            throw NetworkError.errorServidor(statusCode: 0)
+            throw NetworkError.errorDatos(
+                detalle:
+                    "No se ha podido interpretar la respuesta del servidor.",
+                errorOriginal: error
+            )
         }
     }
+    func obtenerEpisodios(urls: [String]) async throws -> [Episodio] {
+        guard !urls.isEmpty else { return [] }
+
+        // 1º Extraer los IDs de las URLs
+        // Convertir "https://../episode/10" -> "10"
+        // TODO: eliminar
+        let ids = urls.compactMap { urlString -> String? in
+            return urlString.split(separator: "/").last?.description
+        }.joined(separator: ",")  // Resultado: ids = 10,11,15
+
+        guard
+            let url = URL(
+                string: "https://rickandmortyapi.com/api/episode/\(ids)"
+            )
+        else {
+            throw NetworkError.urlInvalida
+        }
+
+        //Descargamos datos
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        //Comprobar si el servidor estaba activo
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.errorServidor(statusCode: 0)
+        }
+        // Comprobar si el estado es OK (200)
+        guard let httpResponse = response as? HTTPURLResponse,
+            httpResponse.statusCode == 200
+        else {
+            throw NetworkError.errorServidor(
+                statusCode: httpResponse.statusCode
+            )
+        }
+        // 3º Decodificacion
+        if let variosEpisodios = try? JSONDecoder().decode(
+            [Episodio].self,
+            from: data
+        ) {
+            return variosEpisodios
+        }
+        // A veces un personaje aparece en un solo episodio y la API devuelve un objeto, no un array.
+        else if let unEpisodio = try? JSONDecoder().decode(
+            Episodio.self,
+            from: data
+        ) {
+            return [unEpisodio]
+        }
+        throw NetworkError.errorDatos(
+            detalle: "Formato no reconocido",
+            errorOriginal: nil
+        )
+    }
+    func obtenerPersonajesPorIds(ids: [Int]) async throws -> [Personaje] {
+        guard !ids.isEmpty else { return [] }
+
+        let idsString = ids.map {
+            String($0)
+        }.joined(separator: ",")
+
+        guard
+            let url = URL(
+                string: "https://rickandmortyapi.com/api/character/\(idsString)"
+            )
+        else {
+            throw NetworkError.urlInvalida
+        }
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        // return []
+        //Comprobar si el servidor estaba activo
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.errorServidor(statusCode: 0)
+        }
+        // Comprobar si el estado es OK (200)
+        guard let httpResponse = response as? HTTPURLResponse,
+            httpResponse.statusCode == 200
+        else {
+            throw NetworkError.errorServidor(
+                statusCode: httpResponse.statusCode
+            )
+        }
+
+        // 3º Decodificacion
+        if let variosPersonajes = try? JSONDecoder().decode(
+            [Personaje].self,
+            from: data
+        ) {
+            return variosPersonajes
+        }
+        // A veces un personaje aparece en un solo episodio y la API devuelve un objeto, no un array.
+        else if let unPersonaje = try? JSONDecoder().decode(
+            Personaje.self,
+            from: data
+        ) {
+            return [unPersonaje]
+        }
+        throw NetworkError.errorDatos(
+            detalle: "Formato no reconocido",
+            errorOriginal: nil
+        )
+    }
+
 }

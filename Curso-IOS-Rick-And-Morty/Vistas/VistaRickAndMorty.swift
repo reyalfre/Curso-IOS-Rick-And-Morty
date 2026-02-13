@@ -8,23 +8,20 @@
 import SwiftUI
 
 struct VistaRickAndMorty: View {
-    @State private var personajes: [Personaje] = []
-    @State private var isLoading: Bool = false
-    @State private var errorMessage: String? = nil
-
-    private let apiService = ApiService()
-    
-   // @Binding private var path: NavigationPath("")
-
+    @State private var viewModel = RickAndMortyViewModel()
     @State private var path = NavigationPath()
+
+    // @Binding private var path: NavigationPath("")
+
+  //  @State private var path = NavigationPath()
     //@State private var path2 = NavigationPath("/rickandmorty")
     var body: some View {
         NavigationStack(path: $path) {
             VStack {
-                if isLoading {
+                if viewModel.isLoading {
                     ProgressView("Carga interdimensional...")
                         .controlSize(.large)
-                } else if let errorMessage {
+                } else if let errorMessage = viewModel.errorMessage {
                     ContentUnavailableView(
                         "Error",
                         systemImage: "exclamationmark.triangle",
@@ -32,11 +29,11 @@ struct VistaRickAndMorty: View {
                     )
                     Button("Reintentar") {
                         Task {
-                            await cargarDatos()
+                            await viewModel.cargarDatos()
                         }
                     }
                 } else {
-                    List(personajes) {
+                    List(viewModel.personajes) {
                         personaje in
                         NavigationLink(value: personaje) {
                             //NavigationLink(destination: VistaDetallePersonaje(personaje: personaje)) {
@@ -73,9 +70,7 @@ struct VistaRickAndMorty: View {
                 }
 
             }
-            .navigationTitle("Rick and Morty API").task {
-                await cargarDatos()
-            }
+            .navigationTitle("Rick and Morty API")
             .navigationDestination(
                 for: Personaje.self,
                 destination: {
@@ -83,18 +78,11 @@ struct VistaRickAndMorty: View {
                     VistaDetallePersonaje(personaje: personajes, path: $path)
                 }
             )
+            .task {
+                await viewModel.cargarDatos()
+            }
 
         }
-    }
-    func cargarDatos() async {
-        isLoading = true
-        errorMessage = nil
-        do {
-            personajes = try await apiService.obtenerPersonajes()
-        } catch {
-            errorMessage = "Error al cargar los personajes"
-        }
-        isLoading = false
     }
 }
 

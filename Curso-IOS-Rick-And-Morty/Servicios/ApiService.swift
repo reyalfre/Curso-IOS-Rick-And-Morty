@@ -29,6 +29,13 @@ enum NetworkError: Error {
 }
 
 class ApiService {
+
+    // Convertimos la clase a Singleton
+    static let instancia = ApiService()
+    private init(){
+        
+    }
+
     func obtenerPersonajes() async throws -> [Personaje] {
         guard let url = URL(string: "https://rickandmortyapi.com/api/character")
         else {

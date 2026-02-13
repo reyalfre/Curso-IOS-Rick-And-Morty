@@ -8,20 +8,22 @@
 import SwiftUI
 
 struct VistaDetallePersonaje: View {
-    let personaje: Personaje
+    
     @Binding var path: NavigationPath
+    @State private var viewModel: DetallePersonajeViewModel
+    
+    init(personaje: Personaje, path: Binding<NavigationPath>){
+        self._path = path
+        self._viewModel = State(initialValue: DetallePersonajeViewModel(personaje: personaje))
+    }
 
-    @State private var detalle: PersonajeDetalle?
-    @State private var episodios: [Episodio] = []
-    @State private var personajesRelacionados: [Personaje] = []
 
-    @State private var isLoading = true
-
-    private let apiService = ApiService()
+    // private let apiService = ApiService()    //Lo hemos comentado porque en la Clase Apiservice lo hemos convertido a Singleton y ahora es ApiService.instancia y en la clase Apiservice es ahora: static let instancia = ApiService()
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                AsyncImage(url: URL(string: personaje.image)) {
+                AsyncImage(url: URL(string: viewModel.personaje.image)) {
                     img in
                     img.resizable().scaledToFit()
                 } placeholder: {
@@ -30,16 +32,16 @@ struct VistaDetallePersonaje: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 300)
                 .overlay(alignment: .bottom) {
-                    Text(personaje.name)
+                    Text(viewModel.personaje.name)
                         .font(.largeTitle.bold())
                         .foregroundColor(.white)
                         .shadow(radius: 5)
                         .padding()
                 }
-                if isLoading {
+                if viewModel.isLoading {
                     ProgressView("Descargando datos...")
                         .frame(maxWidth: .infinity)
-                } else if let detalle = detalle {
+                } else if let detalle = viewModel.detalle {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Expediente #\(detalle.id)")
                             .font(.headline)
@@ -78,10 +80,10 @@ struct VistaDetallePersonaje: View {
                     .padding(.horizontal)
                     //Lista de episodios
                     VStack(alignment: .leading) {
-                        Text("Apariciones: \(episodios.count)")
+                        Text("Apariciones: \(viewModel.episodios.count)")
                             .font(.title2.bold())
                             .padding(.horizontal)
-                        ForEach(episodios) {
+                        ForEach(viewModel.episodios) {
                             episodio in
                             HStack {
                                 Text(episodio.episode)
@@ -105,7 +107,7 @@ struct VistaDetallePersonaje: View {
                     }
                     // Lista de personajes relacionados
 
-                    if !personajesRelacionados.isEmpty {
+                    if !viewModel.personajesRelacionados.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Personajes relacionados")
                                 .font(.title2.bold())
@@ -113,7 +115,7 @@ struct VistaDetallePersonaje: View {
                                 .padding(.top)
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 15) {
-                                    ForEach(personajesRelacionados) {
+                                    ForEach(viewModel.personajesRelacionados) {
                                         personaje in
                                         NavigationLink(
                                             value: personaje
@@ -167,65 +169,8 @@ struct VistaDetallePersonaje: View {
             }
         }
         .task {
-            await cargarDatosCompletos()
+            await viewModel.cargarDatosCompletos()
         }
-    }
-    func cargarDatosCompletos() async {
-        do {
-            let datosDetalle = try await apiService.obtenerDetallePersonaje(
-                id: personaje.id
-            )
-            self.detalle = datosDetalle
-
-            if !datosDetalle.episode.isEmpty {
-                self.episodios = try await apiService.obtenerEpisodios(
-                    urls: datosDetalle.episode
-                )
-                print("Episodios cargados: \(episodios.count)")
-            }
-
-            if !episodios.isEmpty {
-                try await cargarPersonajesRelacionados()
-            }
-
-            isLoading = false
-        } catch {
-            print("Error cargando detalles del personaje: \(error)")
-        }
-    }
-    func cargarPersonajesRelacionados() async throws {
-        //Vamos a usar el set para evitar personajes duplicados ya que salen en varios episodios
-        var urlsPersonajes: Set<String> = Set()
-        for episodio in episodios {
-            for personajeUrl in episodio.characters {
-                urlsPersonajes.insert(personajeUrl)
-            }
-        }
-        //Nota: lo de arriba se puede hacer en una sola linea:
-        //FlatMap coge todos los arrrays y los pone en un solo. Luego el set elimina duplicados
-        //let urlsPersonajes2 = Set(episodios.flatMap {$0.characters})
-
-        // Convertir
-        let ids: [Int] = urlsPersonajes.compactMap {
-            urlsString in
-            guard let idString = urlsString.split(separator: "/").last else {
-                return nil
-            }
-            return Int(idString)
-        }.filter {
-            id in
-            //Quitamos el personaje actual (self.personaje) de la lista:
-            return id != personaje.id
-        }
-
-        //Limitamos el número de personajes que solicitamos para mostrar
-        // Además usamos shuffled() para que nos devuelva una lista aleatoria
-        let idsLimitados = Array(ids.shuffled().prefix(10))
-
-        self.personajesRelacionados =
-            try await apiService.obtenerPersonajesPorIds(ids: idsLimitados)
-
-        print("Cargados \(self.personajesRelacionados.count)")
     }
 }
 struct GridInfo: View {
@@ -246,7 +191,6 @@ struct GridInfo: View {
 }
 
 #Preview {
-    
 
     struct ContenedorPrevisualizacion: View {
         @State private var path = NavigationPath()
@@ -261,8 +205,9 @@ struct GridInfo: View {
         var body: some View {
             NavigationStack(path: $path) {
                 VistaDetallePersonaje(personaje: personaje, path: $path)
-                    .navigationDestination(for: Personaje.self){
-                        personaje in VistaDetallePersonaje(personaje: personaje, path: $path)
+                    .navigationDestination(for: Personaje.self) {
+                        personaje in
+                        VistaDetallePersonaje(personaje: personaje, path: $path)
                     }
             }
         }
